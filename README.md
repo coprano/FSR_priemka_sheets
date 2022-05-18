@@ -1,4 +1,4 @@
-FSR_priemka_googlesheets  
+FSR_priemka_sheets  
 Скрипты для выгрузки данных в Google Sheets.   
   
 Для успешной работы необходимо указать все необходимые параметры в файле settings.txt  
