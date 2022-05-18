@@ -362,8 +362,8 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 
-#token.json - well that's a key GitHub shouldn't see
-token.json
+#.json - well that's some keys GitHub shouldn't see
+*.json
 
 #.sln 
 *.sln
