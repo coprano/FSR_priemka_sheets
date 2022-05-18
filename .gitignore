@@ -364,3 +364,9 @@ FodyWeavers.xsd
 
 #token.json - well that's a key GitHub shouldn't see
 token.json
+
+#.sln 
+*.sln
+
+#.pyproj
+*.pyproj
