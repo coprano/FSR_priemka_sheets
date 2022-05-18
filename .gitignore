@@ -374,3 +374,6 @@ token.json
 #.venv/
 #python virtual environment
 .venv/
+
+#tasks.txt nothing to see here
+tasks.txt
