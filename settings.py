@@ -6,9 +6,10 @@ basename = 'base.csv'
 #datapath - path to .csv file 
 #
 #don't forget about slashes in Linux and backslashes in Windows
+#don't forget about smartquotes
 
 
-datapath = 'C:\FSR_data\'
+datapath = "C:\\FSR_data\\"
 datafilepath = f'{datapath}\{basename}'
 
 #!!!!
