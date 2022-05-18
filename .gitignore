@@ -370,3 +370,7 @@ token.json
 
 #.pyproj
 *.pyproj
+
+#.venv/
+#python virtual environment
+.venv/
