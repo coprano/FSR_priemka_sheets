@@ -5,6 +5,7 @@ import os.path
 import logging
 logging.basicConfig(filename='logs.log', level=logging.INFO, format='%(asctime)s %(message)s')
 
+import numpy 
 
 #for sheets:
 import settings
@@ -12,9 +13,10 @@ import httplib2
 from googleapiclient import discovery
 from oauth2client.service_account import ServiceAccountCredentials	
 
+columnlist = ['ID','ФИО','Зона','Номер телефона','Комментарии','Статус ошибок']
 def create_full_csv(df):
     df_new = df[['ID','ФИО','Номер телефона','Зона','Статус ошибок']] 
-    df_new = df_new.reindex(columns= ['ID','ФИО','Зона','Номер телефона','Комментарии','Статус ошибок'])
+    df_new = df_new.reindex(columns= columnlist)
     #df_new.index = df.index.set_names('foo', level=1)
     df_new.reindex(df_new['ID'])
     #df_new.drop('Indexes')
@@ -78,10 +80,8 @@ def obzvon(file_path,spreadsheetId,sheetname):
         data = data.fillna("")
         data.to_csv(f'{settings.datapath}/base_obzvon.csv', sep=',', encoding='utf-8')
         data = df_to_list(data)
-        print(data) 
-
-
-
+        data = [columnlist] + data
+        #print(data) 
         
         try:
             # Очищаем лист
@@ -93,7 +93,7 @@ def obzvon(file_path,spreadsheetId,sheetname):
                 "valueInputOption": "USER_ENTERED", # Данные воспринимаются, как вводимые пользователем (считается значение формул)
                 "data": [
                     {
-                    "range": f"{sheetname}!B2",
+                    "range": f"{sheetname}!A1",
                     "majorDimension": "ROWS",     # Сначала заполнять строки, затем столбцы
                     "values": data
                     }
