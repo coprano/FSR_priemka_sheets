@@ -12,39 +12,23 @@ import httplib2
 from googleapiclient import discovery
 from oauth2client.service_account import ServiceAccountCredentials	
 
-def svodka_stripper(arr):
-    """
-    Вход:\n
-    Двумерный массив. В 1 столбце строка\n 
-    Выход:\n
-    Тот же массив, в 1 столбце будут удалены все знаки ' [ ]\n
-    """
-    for i in range(0,len(arr)):
-        arr[i][0] = arr[i][0].replace("'","")
-        arr[i][0] = arr[i][0].replace("]","")
-        arr[i][0] = arr[i][0].replace("[","")
-    return arr
+def create_full_csv(df):
+    df_new = df[['ID','ФИО','Номер телефона','Зона','Статус ошибок']] 
+    df_new = df_new.reindex(columns= ['ID','ФИО','Зона','Номер телефона','Комментарии','Статус ошибок'])
+    #df_new.index = df.index.set_names('foo', level=1)
+    df_new.reindex(df_new['ID'])
+    #df_new.drop('Indexes')
+    return df_new 
 
-def svodka_creator(df):
-    """
-    Вход:\n
-    pandas dataframe\n
-    В КОТОРОМ ЕСТЬ СТОЛБЕЦ НАПРАВЛЕНИЕ
-    Выход:\n
-    Массив формата направление:колво человек\n
-    """
-    try:
-        df = pd.DataFrame(df.Направление.value_counts()).reset_index().to_numpy().tolist()
-        svodka_stripper(df)
-    except AttributeError:
-        logging.exception('SVODKA: No column named "napravlenie" in df.')
-        print('SVODKA: No column named "napravlenie" in df.')
-        return
+def filter_finished(df):
+    df = df.drop(df[df['Статус ошибок'] == "Загружено в АИС / Проверки пройдены"].index)
+    df.reset_index().reindex(df['ID'])
     return df
 
+def df_to_list(df):
+    return df.to_numpy().tolist()
 
-
-def svodka(file_path,spreadsheetId,sheetname):
+def obzvon(file_path,spreadsheetId,sheetname):
     """
     Вход:\n
     -полный путь к файлу с именем файла и расширением (абсолютный или относительный)\n 
@@ -58,11 +42,11 @@ def svodka(file_path,spreadsheetId,sheetname):
     #проверим, что файл существует
     try:
         df = pd.read_csv(file_path)
-        logging.info(f"SVODKA: successfully opened {file_path}")
-        print(f"SVODKA: successfully opened {file_path}")
+        logging.info(f"OBZVON: successfully opened {file_path}")
+        print(f"OBZVON: successfully opened {file_path}")
     except:
-        logging.exception(f"SVODKA: Error occured while opening the file {file_path}")
-        print(f"SVODKA: Error occured while opening the file {file_path}")
+        logging.exception(f"OBZVON: Error occured while opening the file {file_path}")
+        print(f"OBZVON: Error occured while opening the file {file_path}")
         raise SystemExit(-1)
     
 
@@ -81,21 +65,30 @@ def svodka(file_path,spreadsheetId,sheetname):
     sheetId = -1
     for sheet in sheetList:
         if sheet['properties']['title'] == sheetname:
-            print('SVODKA:', sheet['properties']['sheetId'], sheet['properties']['title'])
+            print('OBZVON:', sheet['properties']['sheetId'], sheet['properties']['title'])
             sheetId = sheet['properties']['sheetId']
-
+    print(sheetId)
     
     if sheetId == -1:
-        logging.exception(f'SVODKA: Sheet not found: {sheetname}')
-        print(f'SVODKA: Sheet not found: {sheetname}')
+        logging.exception(f'OBZVON: Sheet not found: {sheetname}')
+        print(f'OBZVON: Sheet not found: {sheetname}')
         return -1
     else:
-        data = svodka_creator(df)
-        # name = "Направление"
-        # listnapr = df[name].unique()
-        # for i in range(1,len(listnapr)):
-        #     print(listnapr)
+        data = filter_finished(create_full_csv(df))
+        data = data.fillna("")
+        data.to_csv('C:/FSR_data/base_obzvon.csv', sep=',', encoding='utf-8')
+        data = df_to_list(data)
+        print(data) 
+
+
+
+        
         try:
+            # Очищаем лист
+            rangeAll = '{0}!A1:Z'.format( sheetname )
+            body = {}
+            resultClear = service.spreadsheets( ).values( ).clear( spreadsheetId=spreadsheetId, range=rangeAll,
+                                                                body=body ).execute( )
             results = service.spreadsheets().values().batchUpdate(spreadsheetId = spreadsheetId, body = {
                 "valueInputOption": "USER_ENTERED", # Данные воспринимаются, как вводимые пользователем (считается значение формул)
                 "data": [
@@ -107,9 +100,9 @@ def svodka(file_path,spreadsheetId,sheetname):
                 ]
             }).execute()
         except:
-            logging.exception("SVODKA: Error while performing batchUpdate to googlesheets.")
-            print("SVODKA: Error while performing batchUpdate to googlesheets.")
+            logging.exception("OBZVON: Error while performing batchUpdate to googlesheets.")
+            print("OBZVON: Error while performing batchUpdate to googlesheets.")
             return -1
-    logging.info('SVODKA: executed successfully')
-    print('SVODKA: executed successfully')
+    logging.info('OBZVON: executed successfully')
+    print('OBZVON: executed successfully')
     return 0

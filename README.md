@@ -17,6 +17,6 @@ https://stackoverflow.com/questions/68362879/cant-run-google-cloud-valueerror-au
 -run firststart.py  
 -разберитесь с кучей проблем  
 -получите файл token.json  
+-не забудьте про сервисный мейл  
+-заберите у гугла токены, забейте на client_secret, используйте только сервисного бота  
 -Вы великолепны!  
-
-

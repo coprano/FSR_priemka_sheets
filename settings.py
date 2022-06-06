@@ -19,11 +19,12 @@ datafilepath = f'{datapath}{basename}'
 #see firststart.py and README for more info
 #!!!!
 token = "token.json"
+#token_service - token for service mail
 token_service = "fsr-bot-priemka-sheets-d2f9c8b4a169.json"
 
 #scopes
 #you don't need to change it
-SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
+SCOPES = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
 
 #SHEET_ID
 SHEET_ID = "1BqGdb75jl33yFq1E75tnJ36d0IsXhSyMw9ZtcUUixhU"
