@@ -76,7 +76,7 @@ def obzvon(file_path,spreadsheetId,sheetname):
     else:
         data = filter_finished(create_full_csv(df))
         data = data.fillna("")
-        data.to_csv('C:/FSR_data/base_obzvon.csv', sep=',', encoding='utf-8')
+        data.to_csv(f'{settings.datapath}/base_obzvon.csv', sep=',', encoding='utf-8')
         data = df_to_list(data)
         print(data) 
 
