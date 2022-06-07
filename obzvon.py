@@ -11,9 +11,11 @@ import numpy
 import settings
 import httplib2 
 from googleapiclient import discovery
-from oauth2client.service_account import ServiceAccountCredentials	
+from oauth2client.service_account import ServiceAccountCredentials
 
+#названия столбцов
 columnlist = ['ID','ФИО','Зона','Номер телефона','Комментарии','Статус ошибок']
+
 def create_full_csv(df):
     df_new = df[['ID','ФИО','Номер телефона','Зона','Статус ошибок']] 
     df_new = df_new.reindex(columns= columnlist)
@@ -86,11 +88,12 @@ def obzvon(file_path,spreadsheetId,sheetname):
         try:
             # Очищаем лист
             rangeAll = '{0}!A1:Z'.format( sheetname )
+            rangeAll = '{0}!A1:Z'.format( sheetname )            
             body = {}
             resultClear = service.spreadsheets( ).values( ).clear( spreadsheetId=spreadsheetId, range=rangeAll,
                                                                 body=body ).execute( )
             results = service.spreadsheets().values().batchUpdate(spreadsheetId = spreadsheetId, body = {
-                "valueInputOption": "USER_ENTERED", # Данные воспринимаются, как вводимые пользователем (считается значение формул)
+                "valueInputOption": "RAW", # Данные воспринимаются, как вводимые пользователем (считается значение формул)
                 "data": [
                     {
                     "range": f"{sheetname}!A1",
