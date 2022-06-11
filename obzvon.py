@@ -40,6 +40,7 @@ def obzvon_init(spreadsheetId:str) -> None:
     # TODO return 0 ?
     # TODO add exception catcher
     # TODO условное форматирование по строкам, а не только по ячейкам
+    # TODO поменять так, чтобы добавление условного форматирования не зависело от 
 
 
     service = SprConnect()
@@ -69,6 +70,9 @@ def obzvon_init(spreadsheetId:str) -> None:
         logging.info("OBZVON_INIT: init data SUCCESS")
     except:
         logging.exception("OBZVON_INIT: init data FAIL")
+
+    #небольшой костыль для определения буквы столбца с датой
+    dateLetter = chr(65+columnlist.index('Дата'))
 
     #форматирование
     init_request_body = {
@@ -101,22 +105,7 @@ def obzvon_init(spreadsheetId:str) -> None:
                 }
         },
         {
-        "addNamedRange": {
-            #Именованный диапазон для даты
-            "namedRange": {
-            "name": "Дата",
-            "range": {
-                "sheetId": sheetId,
-                "startRowIndex": 1,
-                "endRowIndex": maxrowcount,
-                "startColumnIndex": columnlist.index("Дата"),
-                "endColumnIndex": columnlist.index("Дата")+1,
-            },
-            }
-        }
-        },
-        {
-        #Условное форматирование для даты
+        #Условное форматирование для даты.
         "addConditionalFormatRule": {
             "rule": {
             "ranges": [
@@ -124,23 +113,25 @@ def obzvon_init(spreadsheetId:str) -> None:
                 "sheetId": sheetId,
                 "startRowIndex": 1,
                 "endRowIndex": maxrowcount,
-                "startColumnIndex": len(columnlist),
+                "startColumnIndex": 0,
                 "endColumnIndex": len(columnlist),
                 }
             ],
             "booleanRule": {
                 "condition": {
-                "type": "DATE_BEFORE",
+                "type": "CUSTOM_FORMULA",
                 "values": [
                     {
-                    "relativeDate": "YESTERDAY"
+                    "userEnteredValue": f'=AND(DATEDIF(${dateLetter}2;TODAY();"D")>2;NOT(ISBLANK(${dateLetter}2)))'
                     }
                 ]
                 },
                 "format": {
                 "backgroundColor": {
-                    "green": 0.2,
-                    "red": 0.8,
+                    "red": 0.93,
+                    "green": 0.73,
+                    "blue": 0.71,
+                    "alpha": 0.8
                 }
                 }
             }
@@ -153,81 +144,10 @@ def obzvon_init(spreadsheetId:str) -> None:
     
     try:
         init_request_result = service.spreadsheets().batchUpdate(spreadsheetId = spreadsheetId, body = init_request_body).execute()
-        print("success")
         logging.info("OBZVON_INIT: format SUCCESS")
     except:
         logging.exception("OBZVON_INIT: format FAIL")
-        print("fail")
     
-
-def formatting(spreadsheetId):
-    """
-    Инициализирует первичные настройки для листа обзвона.\n
-    1. Фиксирует 1 строку, записывает названия столбцов.\n
-    \n
-    Args:\n
-        spreadsheetId(str) - id гугл таблицы\n
-    """
-    # TODO return 0 ?
-    # TODO add exception catcher
-    # TODO Сокрытие 1 столбца
-
-    service = SprConnect()
-
-    #Получение списка листов
-    spreadsheet = service.spreadsheets().get(spreadsheetId = spreadsheetId).execute()
-    sheetList = spreadsheet.get('sheets') 
-
-    #поиск id листа с нужным названием
-    for sheet in sheetList:
-        if sheet['properties']['title'] == sheetname:
-            sheetId = sheet['properties']['sheetId']
-
-    #форматирование
-    init_request_body = {
-  "requests": [
-    {
-      "addConditionalFormatRule": {
-        "rule": {
-          "ranges": [
-            {
-              "sheetId": sheetId,
-              "startRowIndex": 1,
-              "endRowIndex": maxrowcount,
-              "startColumnIndex": len(columnlist)-1,
-              "endColumnIndex": len(columnlist),
-            }
-          ],
-          "booleanRule": {
-            "condition": {
-              "type": "DATE_BEFORE",
-              "values": [
-                {
-                  "relativeDate": "YESTERDAY"
-                }
-              ]
-            },
-            "format": {
-              "backgroundColor": {
-                "green": 0.2,
-                "red": 0.8,
-              }
-            }
-          }
-        },
-        "index": 1
-      }
-    }
-  ]
-}
-    
-    try:
-        init_request_result = service.spreadsheets().batchUpdate(spreadsheetId = spreadsheetId, body = init_request_body).execute()
-        print("success")
-        logging.info("formatting: format SUCCESS")
-    except:
-        logging.exception("formatting: format FAIL")
-        print("fail")    
 
 def create_full_csv(df:pd.DataFrame)-> pd.DataFrame:
     """
@@ -298,7 +218,7 @@ def obzvon(file_path:str,spreadsheetId:str):
         
         try:
             data_request= {
-                        "valueInputOption": "USER_ENTERED",
+                        "valueInputOption": "RAW",
                         "data": [
                             {
                             "range": f"{sheetname}!A2",
