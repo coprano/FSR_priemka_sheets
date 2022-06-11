@@ -377,3 +377,6 @@ FodyWeavers.xsd
 
 #tasks.txt nothing to see here
 tasks.txt
+
+#just some generic stuff
+test.py
