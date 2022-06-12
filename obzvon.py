@@ -179,8 +179,6 @@ def transfercomments(dfnew:pd.DataFrame,dfold:pd.DataFrame)->pd.DataFrame:
             dfnew.loc[dfnew['ID']==i,'Комментарии'] = comment
     dfnew=dfnew.fillna("")
     dfnew = dfnew.sort_values('Дата')
-    print(dfold)
-    print(dfnew)
     return dfnew
 
 	    
@@ -233,7 +231,6 @@ def obzvon(file_path:str,spreadsheetId:str):
     file_path (str)-полный путь к файлу с именем файла и расширением\n 
     Пример: /data/file.csv\n
     spreadsheetId (str) - id таблицы\n
-    sheetname (str) - название листа, на который писать\n
     Returns:\n
     int: 0 [success] or -1\n
     """
@@ -281,7 +278,7 @@ def obzvon(file_path:str,spreadsheetId:str):
             #Преобразовываем нужные нам столбцы
             #Т.К. при вытаскивании из json'a у нас данные превратились в object, нужно их преобразовать.
             dfold['ID']=dfold['ID'].astype('int64')
-            dfold['Комментарии']=dfold['Комментарии'].astype(str)
+            dfold['Комментарии']=dfold['Комментарии'].astype('string')
             data = transfercomments(dfnew,dfold)
 
             data.to_csv(f'{settings.datapath}/base_obzvon{time.strftime("%Y%m%d-%H%M%S")}.csv', sep=',', encoding='utf-8')
@@ -307,7 +304,7 @@ def obzvon(file_path:str,spreadsheetId:str):
                             "sheetId": sheetId,
                             "dimension": "ROWS",
                             "startIndex": 2,
-                            "endIndex": 1000
+                            "endIndex": maxrowcount
                         }
                     }
                 },
