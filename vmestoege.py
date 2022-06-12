@@ -30,7 +30,7 @@ def SprConnect():
 def get_new_men(df:pd.DataFrame)->pd.DataFrame:
     print(df)
     df = df[df['Вместо ЕГЭ'] == True]
-    df = df[df['Новое согласие?'] == False]
+    df = df[df['Новое согласие?'] == True]
     df['ФИО'] = df['ФИО']
     df=df['ФИО'].astype('string')
     df=df.fillna("")
