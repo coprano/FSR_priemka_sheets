@@ -18,6 +18,7 @@ import settings
 columnlist = ['ID','ФИО','Зона','Номер телефона','Комментарии','Статус ошибок','Дата']
 sheetname = 'Обзвон'
 maxrowcount = 10000
+
 def SprConnect():
     """
     Подключение к аккаунту Google
@@ -149,7 +150,7 @@ def obzvon_init(spreadsheetId:str) -> None:
         logging.exception("OBZVON_INIT: format FAIL")
     
 
-def create_full_csv(df:pd.DataFrame)-> pd.DataFrame:
+def create_obzvon_df(df:pd.DataFrame)-> pd.DataFrame:
     """
     Создаем датафрейм для листа обзвона
     """
@@ -164,6 +165,48 @@ def create_full_csv(df:pd.DataFrame)-> pd.DataFrame:
     df_new = df_new.reindex(columns=columnlist)
     df_new = df_new.drop(df_new[df_new["Статус ошибок"] == "Загружено в АИС / Проверки пройдены"].index).fillna("")
     return df_new 
+
+def get_delete_list(df_old,df_new):
+    """
+    Возвращает массив интов Номер строки:ID, записей, которые нужно удалить\n
+    Args: \n
+    old dataframe\n
+    new dataframe\n
+    Returns:\n
+    list of rows to delete\n
+    """
+    dellist = []
+    #Если в новом датафрейме нет значения, то записываем в датафрейм значений, которые нужно удалить.
+    df_old['sheet_row'] = range(1, len(df_old) + 1)
+    df_old.set_index('sheet_row', inplace=True)
+    for x in df_old["ID"]:
+        if ~df_new["ID"].isin([x]).any():
+            dellist.append(df_old[df_old['ID'] == x].index.tolist())
+    dellist = [x for xs in dellist for x in xs]
+    return dellist
+
+
+def create_bu_del_body(dellist,sheetId:int):
+    # TODO Добавить проверку на пустоту
+    # ! В скрипте уже учитывается сдвиг на первую строку с названиями
+    request_list = []
+    for i in range(0,len(dellist)):
+        req = {
+                'deleteDimension':{
+                    'range':{
+                    'sheetId':sheetId,
+                    'dimension': 'ROWS',
+                    'startIndex':f'{dellist[i]-i}',
+                    'endIndex':f'{dellist[i]+1-i}'
+                    }
+
+                }
+        
+            }
+        request_list.append(req)
+
+    request_body = {'requests':request_list}
+    return request_body
 
 def obzvon(file_path:str,spreadsheetId:str):
     """
@@ -180,13 +223,12 @@ def obzvon(file_path:str,spreadsheetId:str):
     try:
         df = pd.read_csv(file_path)
         logging.info(f"OBZVON: successfully opened {file_path}")
-        print(f"OBZVON: successfully opened {file_path}")
+        #print(f"OBZVON: successfully opened {file_path}")
     except:
         logging.exception(f"OBZVON: Error occured while opening the file {file_path}")
-        print(f"OBZVON: Error occured while opening the file {file_path}")
+        #print(f"OBZVON: Error occured while opening the file {file_path}")
         raise SystemExit(-1)
     
-
     #Подключаемся к таблице
     service = SprConnect()
 
@@ -200,39 +242,40 @@ def obzvon(file_path:str,spreadsheetId:str):
     sheetId = -1
     for sheet in sheetList:
         if sheet['properties']['title'] == sheetname:
-            print('OBZVON:', sheet['properties']['sheetId'], sheet['properties']['title'])
             sheetId = sheet['properties']['sheetId']
-    print(sheetId)
     
     if sheetId == -1:
         logging.exception(f'OBZVON: Sheet not found: {sheetname}')
-        print(f'OBZVON: Sheet not found: {sheetname}')
         return -1
     else:
-        data = create_full_csv(df)
+        data = create_obzvon_df(df)
+
         #Сохраняем в csv последнее записанное состояние для листа обзвона
-        data.to_csv(f'{settings.datapath}/base_obzvon.csv', sep=',', encoding='utf-8')
-
-        #преобразовываем в list для передачи в табличку
-        data = data.to_numpy().tolist()
+        data_new = data.reset_index()
+        data_new.to_csv(f'{settings.datapath}/base_obzvon.csv', sep=',', encoding='utf-8')
         
-        try:
-            data_request= {
-                        "valueInputOption": "RAW",
-                        "data": [
-                            {
-                            "range": f"{sheetname}!A2",
-                            "majorDimension": "ROWS",
-                            "values": data
-                            },
-                        ]
-                    }
-
-            bu_columlistfix_response = service.spreadsheets().values().batchUpdate(spreadsheetId = spreadsheetId, body = data_request).execute()
-        except:
-            logging.exception("OBZVON: Error while performing batchUpdate to googlesheets.")
-            print("OBZVON: Error while performing batchUpdate to googlesheets.")
-            return -1
+        
+        # #преобразовываем в list для передачи в табличку
+        # data = data.to_numpy().tolist()
+        testdata = create_bu_del_body(get_delete_list(data,data),sheetId)
+        print(testdata)
+        bu_testdata_responce = service.spreadsheets().batchUpdate(spreadsheetId = spreadsheetId, body = testdata).execute()
+        # try:
+        #     data_request= {
+        #             "valueInputOption": "RAW",
+        #             "data": [
+        #                 {
+        #                 "range": f"{sheetname}!A2",
+        #                 "majorDimension": "ROWS",
+        #                 "values": data
+        #                 },
+        #             ]
+        #         }
+        #     bu_responce = service.spreadsheets().values().batchUpdate(spreadsheetId = spreadsheetId, body = data_request).execute()
+        # except:
+        #     logging.exception("OBZVON: Error while performing batchUpdate to googlesheets.")
+        #     print("OBZVON: Error while performing batchUpdate to googlesheets.")
+        #     return -1
     logging.info('OBZVON: executed successfully')
     print('OBZVON: executed successfully')
     return 0
