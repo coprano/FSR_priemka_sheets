@@ -1,6 +1,5 @@
 #for csv:
 import pandas as pd
-import os.path
 
 import logging
 logging.basicConfig(filename='logs.log', level=logging.INFO, format='%(asctime)s %(message)s')
@@ -11,6 +10,11 @@ import settings
 import httplib2 
 from googleapiclient import discovery
 from oauth2client.service_account import ServiceAccountCredentials	
+
+#auxulary:
+import datetime
+sheetname = 'Сводка'
+maxrowcount = 10000
 
 def svodka_stripper(arr):
     """
@@ -25,26 +29,55 @@ def svodka_stripper(arr):
         arr[i][0] = arr[i][0].replace("[","")
     return arr
 
-def svodka_creator(df):
+def svodka_data_creator(df:pd.DataFrame):
     """
-    Вход:\n
-    pandas dataframe\n
-    В КОТОРОМ ЕСТЬ СТОЛБЕЦ НАПРАВЛЕНИЕ
-    Выход:\n
-    Массив формата направление:колво человек\n
+    Args:\n
+    df pandas.DataFrame\n
+    В котором есть столбец "Направление" и "Статус согласия" и "Cтатус Согласия"\n 
+    Returns:\n
+    data (list of lists)\n
+    data[0] - блок направление\n
+    data[1] - инфа об олимпиадниках\n
+    data[2] - инфа о заявлениях
     """
+    data = []
     try:
-        df = pd.DataFrame(df.Направление.value_counts()).reset_index().to_numpy().tolist()
-        svodka_stripper(df)
-    except AttributeError:
-        logging.exception('SVODKA: No column named "napravlenie" in df.')
-        print('SVODKA: No column named "napravlenie" in df.')
-        return
-    return df
+        data_cnt = pd.DataFrame(df["Направление"].value_counts()).fillna("").reset_index().to_numpy().tolist()
+        svodka_stripper(data_cnt)
+        data.append(data_cnt)
+    except:
+        data.append([['err',"0"]])
+        logging.exception('SVODKA: No column named "Направление" in df.')
+        print('SVODKA: No column named "Направление" in df.')
+
+    try:
+        data_olymp = pd.DataFrame(df["Олимпиадник?"].value_counts())
+        data_olymp = data_olymp.rename(index={'Нет': 'Без олимпиад'})
+        
+        data_olymp = data_olymp.fillna("").reset_index().to_numpy().tolist()
+        data.append(data_olymp)
+    except:
+        data.append([['err',"0"]])
+        logging.exception('SVODKA: No column named "Олимпиадник?" in df.')
+        print('SVODKA: No column named "Олимпиадник?" in df.')
+    
+    try:
+        data_sogl = pd.DataFrame(df["Статус согласия"].value_counts())
+        data_sogl = data_sogl.rename(index={'Нет': 'Нет согласия или отзыва'})
+        data_sogl = data_sogl.append(pd.DataFrame({'Статус согласия': [df.shape[0]]},index = ['Всего заявлений']).astype('int64'))
+        data_sogl = data_sogl.reindex(['Всего заявлений', 'Согл. на зач.: Принято АИС', 'Согл. на зач.: Отзыв принят АИС', 'Согл. на зач.: Отзыв загружен'])
+        data_sogl = data_sogl.fillna("").reset_index().to_numpy().tolist()
+        data.append(data_sogl)
+    except:
+        data.append([['err',"0"]])
+        logging.exception('SVODKA: No column named "Статус согласия" in df.')
+        print('SVODKA: No column named "Статус согласия" in df.')
+
+    return(data)
 
 
 
-def svodka(file_path,spreadsheetId,sheetname):
+def svodka(file_path,spreadsheetId):
     """
     Вход:\n
     -полный путь к файлу с именем файла и расширением (абсолютный или относительный)\n 
@@ -90,22 +123,56 @@ def svodka(file_path,spreadsheetId,sheetname):
         print(f'SVODKA: Sheet not found: {sheetname}')
         return -1
     else:
-        data = svodka_creator(df)
-        # name = "Направление"
-        # listnapr = df[name].unique()
-        # for i in range(1,len(listnapr)):
-        #     print(listnapr)
-        try:
-            results = service.spreadsheets().values().batchUpdate(spreadsheetId = spreadsheetId, body = {
+        data = svodka_data_creator(df)
+        print()
+        print(data[2])
+        name = "Направление"
+        listnapr = df[name].unique()
+        bu_val_body = {
                 "valueInputOption": "USER_ENTERED", # Данные воспринимаются, как вводимые пользователем (считается значение формул)
                 "data": [
                     {
                     "range": f"{sheetname}!B2",
                     "majorDimension": "ROWS",     # Сначала заполнять строки, затем столбцы
-                    "values": data
+                    "values": data[0]
+                    },
+                    {
+                    "range": f"{sheetname}!E2",
+                    "majorDimension": "ROWS",     # Сначала заполнять строки, затем столбцы
+                    "values": data[1]
+                    },
+                    {
+                    "range": f"{sheetname}!H2",
+                    "majorDimension": "ROWS",     # Сначала заполнять строки, затем столбцы
+                    "values": data[2]
+                    },
+                    {
+                    "range": f"{sheetname}!H10",
+                    "majorDimension": "ROWS",     # Сначала заполнять строки, затем столбцы
+                    "values": [['Обновлено',datetime.datetime.now().strftime('%d.%m.%Y %H:%M') ]]
                     }
                 ]
-            }).execute()
+            }
+        #запрос на очистку страницы
+        #! Т.К. ПИШЕМ НА ВТОРУЮ СТРОКУ, НЕ НУЖНО СТАВИТЬ startIndex МЕНЬШЕ ДВОЙКИ. ИНАЧЕ БУДЕТ ПРОИСХОДИТЬ ОШИБКА
+        clean_request = {"requests": [
+            {
+                "deleteDimension": {
+                    "range": {
+                        "sheetId": sheetId,
+                        "dimension": "ROWS",
+                        "startIndex": 2,
+                        "endIndex": maxrowcount
+                    }
+                }
+            },
+        ]}
+        try:
+            bu_response_clean = service.spreadsheets().batchUpdate(spreadsheetId=spreadsheetId, body=clean_request).execute()
+        except:
+            print()
+        try:
+            results = service.spreadsheets().values().batchUpdate(spreadsheetId = spreadsheetId, body = bu_val_body).execute()
         except:
             logging.exception("SVODKA: Error while performing batchUpdate to googlesheets.")
             print("SVODKA: Error while performing batchUpdate to googlesheets.")

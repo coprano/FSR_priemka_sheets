@@ -73,6 +73,12 @@ def obzvon_init(spreadsheetId:str) -> None:
     except:
         logging.exception("OBZVON_INIT: init data FAIL")
 
+    resource = {
+    "majorDimension": "ROWS",
+    "values": [['init','init'],['init','init']]
+    }
+
+    request = service.spreadsheets().values().append(spreadsheetId=spreadsheetId, range=f'{sheetname}!A1:Z', valueInputOption='RAW', insertDataOption='INSERT_ROWS', body=resource).execute()
     #небольшой костыль для определения буквы столбца с датой
     dateLetter = chr(65+columnlist.index('Дата'))
 
@@ -149,6 +155,9 @@ def obzvon_init(spreadsheetId:str) -> None:
         logging.info("OBZVON_INIT: format SUCCESS")
     except:
         logging.exception("OBZVON_INIT: format FAIL")
+
+
+
     
 
 def create_obzvon_df(df:pd.DataFrame)-> pd.DataFrame:
@@ -316,6 +325,4 @@ def obzvon(file_path:str,spreadsheetId:str):
         except:
             logging.exception('OBZVON: FAILED')
             print('OBZVON: FAILED')
-    logging.info('OBZVON: executed successfully')
-    print('OBZVON: executed successfully')
     return 0

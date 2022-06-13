@@ -79,7 +79,7 @@ def vmestoege(file_path:str,spreadsheetId:str):
     "values": df
     }
 
-    request = service.spreadsheets().values().append(spreadsheetId=spreadsheetId, range='A2:Z', valueInputOption='RAW', insertDataOption='INSERT_ROWS', body=resource)
+    request = service.spreadsheets().values().append(spreadsheetId=spreadsheetId, range=f'{sheetname}A2:Z', valueInputOption='RAW', insertDataOption='INSERT_ROWS', body=resource)
     response = request.execute()
 
     return 0
