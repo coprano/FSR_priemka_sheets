@@ -28,14 +28,13 @@ def SprConnect():
     return service
 
 def get_new_men(df:pd.DataFrame)->pd.DataFrame:
-    print(df)
-    df = df[df['Вместо ЕГЭ'] == True]
-    df = df[df['Новое согласие?'] == True]
-    df['ФИО'] = df['ФИО']
-    df=df['ФИО'].astype('string')
-    df=df.fillna("")
-    print(df)
-    return df
+    df_new = df
+    df_new = df_new[df_new['Вместо ЕГЭ'] == True]
+    df_new = df_new[df_new['Новое согласие?'] == True]
+    df_new['ФИО'] = df_new['ФИО']
+    df_new=df_new['ФИО'].astype('string')
+    df_new=df_new.fillna("")
+    return df_new
 
 
 def vmestoege(file_path:str,spreadsheetId:str):
@@ -71,15 +70,14 @@ def vmestoege(file_path:str,spreadsheetId:str):
     df = df.to_numpy().tolist()
     #двумерный массив нужен для гугл таблицы
     df = [[x] for x in df]
-    print(df)
-
 
     resource = {
     "majorDimension": "ROWS",
     "values": df
     }
 
-    request = service.spreadsheets().values().append(spreadsheetId=spreadsheetId, range=f'{sheetname}A2:Z', valueInputOption='RAW', insertDataOption='INSERT_ROWS', body=resource)
+    request = service.spreadsheets().values().append(spreadsheetId=spreadsheetId, range=f'{sheetname}!A2:Z', valueInputOption='RAW', insertDataOption='INSERT_ROWS', body=resource)
     response = request.execute()
-
+    print('VMESTOEGE: SUCCESS')
+    logging.info('VMESTOEGE: SUCCESS')
     return 0

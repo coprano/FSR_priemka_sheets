@@ -5,11 +5,9 @@ from vmestoege import vmestoege
 from sheetsdwnld import sheetsdwnld
 import settings
 
-# #на какой лист писать?
-listname = "Лист2"
 #svodka(settings.datafilepath,settings.SHEET_ID)
-obzvon(settings.datafilepath,settings.SHEET_ID)
-#vmestoege(settings.datafilepath,settings.SHEET_ID)
+#obzvon(settings.datafilepath,settings.SHEET_ID)
+vmestoege(settings.datafilepath,settings.SHEET_ID)
 #obzvon_init(settings.SHEET_ID)
 #sheetsdwnld(settings.SHEET_ID)
 # email = "fsr.bot.priemka@gmail.com"

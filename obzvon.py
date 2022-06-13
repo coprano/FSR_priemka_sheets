@@ -283,9 +283,9 @@ def obzvon(file_path:str,spreadsheetId:str):
             #Запрашиваем данные из таблички
             responseBGet = service.spreadsheets().values().batchGet(spreadsheetId=spreadsheetId, ranges=ranges).execute()
             #Выбираем кусок с данными, засовываем в датафрейм
-            dfold = pd.DataFrame(responseBGet.get('valueRanges')[0].get('values'), columns = columnlist)
+            dfold = pd.DataFrame(responseBGet.get('valueRanges')[0].get('values'), columns = columnlist).fillna(0)
             #Преобразовываем нужные нам столбцы
-            #Т.К. при вытаскивании из json'a у нас данные превратились в object, нужно их преобразовать.
+            #Т.К. при вытаскивании из json'a у нас данные превратились в object, нужно их преобразовать.s
             dfold['ID']=dfold['ID'].astype('int64')
             dfold['Комментарии']=dfold['Комментарии'].astype('string')
             data = transfercomments(dfnew,dfold)
@@ -319,10 +319,20 @@ def obzvon(file_path:str,spreadsheetId:str):
                 },
             ]}
 
-            bu_response_clean = service.spreadsheets().batchUpdate(spreadsheetId=spreadsheetId, body=clean_request).execute()
-            bu_response_write = service.spreadsheets().values().batchUpdate(spreadsheetId = spreadsheetId, body = data_request).execute()
+            try:
+                bu_response_clean = service.spreadsheets().batchUpdate(spreadsheetId=spreadsheetId, body=clean_request).execute()
+            except:
+                logging.exception('OBZVON: bu_response_write FAILED')
+                print('OBZVON: bu_response_write FAILED')
+            try:
+                bu_response_write = service.spreadsheets().values().batchUpdate(spreadsheetId = spreadsheetId, body = data_request).execute()
+            except:
+                logging.exception('OBZVON: bu_response_write FAILED')
+                print("OBZVON: bu_response_write FAILED")
 
         except:
-            logging.exception('OBZVON: FAILED')
-            print('OBZVON: FAILED')
+            logging.exception('OBZVON: FAILED idk why')
+            print('OBZVON: FAILED idk why')
+    print('OBZVON: SUCCESS')
+    logging.info('OBZVON: SUCCESS')
     return 0

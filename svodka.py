@@ -124,8 +124,8 @@ def svodka(file_path,spreadsheetId):
         return -1
     else:
         data = svodka_data_creator(df)
-        print()
-        print(data[2])
+        # print()
+        # print(data[2])
         name = "Направление"
         listnapr = df[name].unique()
         bu_val_body = {
